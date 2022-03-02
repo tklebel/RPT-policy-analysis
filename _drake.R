@@ -1,8 +1,8 @@
-source("R/packages.R")
+source("R/01-packages.R")
 source("R/fonts.R")
-source("R/functions.R")
-source("R/correspondence_analysis.R")
-source("R/plan.R")
+source("R/02-functions.R")
+source("R/04-correspondence_analysis.R")
+source("R/03-plan.R")
 
 # options(clustermq.scheduler = "multicore") # optional parallel computing
 
