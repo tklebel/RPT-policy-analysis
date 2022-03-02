@@ -73,13 +73,7 @@ df_country <- df_university %>%
             prop_unis_with_indicator = n_unis_with_indicator/n()) %>%
   ungroup()
 
-# remove criteria with different dimension
-pdata <- df_country %>% 
-  filter(
-    # impact is an overall category based on three others. makes no sense to
-    # include all four
-    !str_detect(code_legible, "Impact"),
-  )
+pdata <- df_country
 ```
 
 
@@ -143,13 +137,7 @@ df_ranking <- df_university %>%
             prop_unis_with_indicator = n_unis_with_indicator/n()) %>%
   ungroup()
 
-# remove criteria with different dimension
-pdata_ranking <- df_ranking %>% 
-  filter(
-    # impact is an overall category based on three others. makes no sense to
-    # combine them
-    !str_detect(code_legible, "Impact")
-  ) 
+pdata_ranking <- df_ranking
 ```
 
 ```{r}

@@ -54,9 +54,6 @@ recoded_data <- df_university %>%
 
 mca_data <- recoded_data %>% 
     filter(
-    # impact is an overall category based on three others. makes no sense to
-    # include all four
-    !str_detect(code_abbr, "Impact"), 
     # remove all gender variables, because they are very special: only the case
     # in Austria and Germany, and dominate the resulting solution, clouding 
     # other differences
