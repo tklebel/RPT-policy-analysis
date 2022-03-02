@@ -1,0 +1,108 @@
+country,university,uni_name,status,level,research,citations
+AT,1,,Research,High,64.21772402557248,66.49139237078552
+AT,2,Johannes Kepler University of Linz,Research,Middle,19.7,46.8
+AT,3,Medical University of Innsbruck,Research,Low,14.2,89.1
+AT,4,Medical University of Vienna,Citations,High,23.5,90.3
+AT,5,University of Innsbruck,Citations,Middle,21.8,62
+AT,6,University of Leoben,Citations,Low,11.2,35.6
+BR,2,Federal University of Health Sciences of Porto Alegre (UFCSPA),Research,Middle,10.5,12.9
+BR,7,Federal University of Rio Grande do Sul,Research,High,18.3,49.3
+BR,8,Rio de Janeiro State University (UERJ),Research,Middle,10.9,15.2
+BR,9,Federal University of Rio Grande do Norte (UFRN),Research,Low,8.7,19
+BR,10,University of Campinas,Citations,High,38,34.8
+BR,11,Federal University of Bahia,Citations,Middle,13.7,18.7
+DE,1,Technical University of Berlin,Research,High,53.9,62.3
+DE,3,Chemnitz University of Technology,Research,Low,26.5,26.8
+DE,4,University of Bonn,Citations,High,47,88
+DE,5,TU Dresden,Citations,Middle,48.5,73
+DE,6,University of Stuttgart,Citations,Low,45.4,52.4
+DE,7,Heidelberg University,Research,High,60.3,96.2
+DE,8,University of Cologne,Research,Middle,42.9,81.5
+DE,9,University of Marburg,Research,Low,29.1,73.4
+DE,11,University of Hamburg,Citations,Middle,49.8,74
+DE,12,TU Dortmund University,Citations,Low,41.4,54.2
+GB,1,University of Southampton,Research,High,44.3,88
+GB,4,Lancaster University,Citations,High,39.4,92.5
+GB,6,Teesside University,Citations,Low,10.6,43.9
+GB,7,University of Leeds,Research,High,45.9,78
+GB,8,Queen Mary University of London,Research,High,43.1,98
+GB,9,University of Sheffield,Research,High,46.4,83
+GB,10,Aston University,Research,Middle,24.2,55.1
+GB,11,Swansea University,Research,Middle,24.1,93.3
+GB,12,University of Huddersfield,Research,Middle,20,44.8
+GB,13,Glasgow Caledonian University,Research,Low,12.2,56.2
+GB,14,University of the West of Scotland,Research,Low,13.9,76.8
+GB,15,Coventry University,Research,Low,12.7,44.1
+GB,16,University of Exeter,Citations,High,38.9,92.4
+GB,17,University of Aberdeen,Citations,High,33.3,95.2
+GB,18,University of Glasgow,Citations,High,47.9,91.8
+GB,19,University of St Andrews,Citations,Middle,41.8,67.8
+GB,20,University of Portsmouth,Citations,Middle,16.2,71
+GB,21,Bangor University,Citations,Middle,20.7,66.3
+GB,22,SOAS University of London,Citations,Low,37.7,31.2
+GB,23,Ulster University,Citations,Low,18,40.9
+GB,24,University of East London,Citations,Low,14.5,32.8
+IN,1,Jadavpur University,Research,High,22.3,28.5
+IN,2,Manipal Academy of Higher Education,Research,Middle,11.6,9.3
+IN,3,Sathyabama Institute of Science and Technology,Research,Low,9,10.2
+IN,4,Acharya Nagarjuna University,Citations,Low,9.2,15.7
+IN,5,Panjab University,Citations,High,14.4,56.6
+IN,6,Jawaharlal Nehru University,Citations,Low,17.3,26.6
+IN,7,University of Delhi,Research,High,17.8,42.8
+IN,8,Anna University,Research,Middle,14.1,18.5
+IN,9,PSG College of Technology,Research,Low,9.5,12.8
+IN,10,VIT University,Citations,High,12.6,44
+IN,11,Indian Institute of Science,Citations,Middle,55.3,32.4
+IN,12,Indian Institute of Technology Bombay,Citations,Middle,39.6,34.9
+PT,1,University of Porto,Research,High,27.9,62.1
+PT,2,University of Minho,Research,Middle,19.4,34.6
+PT,4,University of Lisbon,Citations,High,29.8,52.7
+PT,5,NOVA University of Lisbon,Citations,Middle,25.7,46.6
+USA,2,Northeastern University,Research,Middle,27.9,97.5
+USA,3,Florida Atlantic University,Research,Low,19.1,37.5
+USA,5,"Rutgers, the State University of New Jersey",Citations,Middle,48.5,73.9
+USA,6,Lehigh University,Citations,Low,20.8,51
+USA,7,University of Miami,Research,Middle,25.2,83.2
+USA,8,"Colorado State University, Fort Collins",Research,Middle,25.3,64.1
+USA,9,University of Rhode Island,Research,Low,17.7,66
+USA,10,Ohio University (Main campus),Research,Low,17.4,43.5
+USA,11,Rochester Institute of Technology,Research,Low,18.1,39
+USA,12,West Virginia University,Research,Low,17.1,59.3
+USA,13,Wayne State University,Research,Low,18.1,83.3
+USA,14,University of Texas at Austin,Citations,High,76.2,93.2
+USA,15,Brown University,Citations,High,56.1,94.9
+USA,16,Boston University,Citations,High,55.6,95.7
+USA,17,Washington University in St Louis,Citations,High,57.5,98.8
+USA,18,University of Wisconsin-Madison,Citations,High,70.3,85.3
+USA,19,Purdue University West Lafayette,Research,High,66.4,63
+USA,20,University of Southern California,Research,High,59.3,93.1
+USA,21,"University of California, Davis",Research,High,66.9,83.2
+USA,23,University of Kentucky,Research,Middle,24.9,55.5
+USA,24,Colorado School of Mines,Research,Middle,25.1,79.6
+USA,25,University of Missouri-St Louis,Research,Middle,24.7,70.3
+USA,26,Rush University,Citations,Middle,12.9,92.1
+USA,27,North Carolina State University,Citations,Middle,35.3,64.7
+USA,28,University of Texas at Dallas,Citations,Middle,29.3,82.1
+USA,29,Syracuse University,Citations,Middle,29.6,78.1
+USA,30,Temple University,Citations,Middle,23.5,79.3
+USA,31,"University of Nevada, Las Vegas",Citations,Low,22.6,41.3
+USA,32,Creighton University,Citations,Low,11.6,41.5
+USA,33,University of Central Florida,Citations,Low,28.7,49.7
+USA,34,Kansas State University,Citations,Low,20.4,45.8
+USA,35,University of North Carolina at Greensboro,Citations,Low,19.3,50
+BR,12,Federal University of Parana,Citations,Low,11.5,12.7
+BR,1,Federal University of Sao Paulo (UNIFESP),Research,High,17.8,43.3
+BR,3,Ceara State University,Research,Low,8.3,6.1
+BR,4,University of Brazilia,Citations,High,14.4,36.8
+BR,5,São Paulo State University,Citations,Middle,23,16.8
+BR,6,Federal University of Technology - Parana,Citations,Low,9.2,8.6
+DE,10,University of Wurzburg,Citations,High,42.4,87.5
+DE,2,University of Munster,Research,Middle,42.5,81.3
+GB,2,Oxford Brookes,Research,Middle,24,37.4
+GB,3,Anglia Ruskin University,Research,Low,14.4,99.9
+GB,5,Open University,Citations,Middle,16.1,66.5
+PT,3,University of Tras-os-Montes and Alto Douro,Research,Low,13.9,32.3
+PT,6,University of Evora,Citations,Low,14.6,31.3
+USA,1,University of California Santa Barbara,Research,High,63.6,96.4
+USA,22,Penn State,Research,High,67.1,75.7
+USA,4,University of Chicago,Citations,High,91.4,96.7

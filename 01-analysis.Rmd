@@ -1,0 +1,562 @@
+---
+title: "PRT Policies Analysis"
+author: "Thomas Klebel"
+date: "20 10 2020"
+output: 
+  html_document:
+    keep_md: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, dpi = 300)
+
+df <- readd(merged)
+metadata <- readd(metadata)
+
+extrafont::loadfonts(device = "win")
+
+theme_set(hrbrthemes::theme_ipsum(base_family = "Hind"))
+```
+
+# Data preparation
+The data files were merged and restructured:
+
+- if a given university has several policies, the recoded set only records 
+whether any of the policies had a match to an indicator. E.g. if a university 
+has three policies and in one an indicator was coded, the indicator is found for
+the whole university. This is the same result as if all three policies had
+a match on the indicator.
+
+Does this make sense? We could try to compare different types of policies by
+taking the metadata from our data collection.
+
+# Sampling methods
+Include table of how we determined the number of universities to sample per 
+country.
+
+# Sample overview
+```{r sample_overview}
+nudge_y <- .04
+
+pdata <- df %>% 
+  group_by(country) %>% 
+  summarise(n_universities = length(unique(university))) %>% 
+  ungroup() %>% 
+  mutate(prop = n_universities/sum(n_universities),
+         label = glue::glue("{n_universities} ({scales::percent(prop, accuracy = .1)})")) %>% 
+  add_country_names()
+
+pdata %>% 
+  ggplot(aes(fct_reorder(country_name, prop), prop)) +
+  geom_lollipop() +
+  coord_flip(clip = "off") +
+  geom_text(aes(label = label), nudge_y = nudge_y) +
+  scale_y_continuous(labels = function(x) scales::percent(x, accuracy = 1),
+                     breaks = c(0, .1, .2, .3)) +
+  labs(x = NULL, y = "# of universities (% of total sample)") +
+  theme_ipsum(base_family = "Hind", grid = "X") 
+```
+
+
+# Indicators by country
+```{r, message=FALSE}
+# aggregate by university (because we have multiple policies for some unis)
+df_university <- df %>%
+  filter(Group != "Metadata") %>% 
+  group_by(country, university, code_legible, level, status) %>%
+  summarise(uni_has_indicator = any(quant_indicator > 0, na.rm = TRUE)) %>% 
+  ungroup()
+
+df_country <- df_university %>% 
+  group_by(country, code_legible) %>% 
+  summarise(n_unis_with_indicator = sum(uni_has_indicator),
+            prop_unis_with_indicator = n_unis_with_indicator/n()) %>%
+  ungroup()
+
+# remove criteria with different dimension
+pdata <- df_country %>% 
+  filter(
+    # impact is an overall category based on three others. makes no sense to
+    # include all four
+    !str_detect(code_legible, "Impact"),
+  )
+```
+
+
+```{r tile_plot, fig.width=6, fig.height=6}
+tile_plot <- pdata %>% 
+  add_country_names() %>% 
+  ggplot(aes(country_name, 
+             fct_reorder(code_legible, prop_unis_with_indicator, mean),
+             fill = prop_unis_with_indicator)) +
+  geom_tile() +
+  scale_fill_continuous_sequential(palette = "Blues2", c1 = 60, l1 = 40,
+                                   l2 = 100, p1 = 1, h1 = 240) +
+  scale_x_discrete(guide = guide_axis(angle = 45)) +
+  labs(x = NULL, y = NULL, fill = "% of institutions\nwith given indicator") +
+  theme(legend.position = c(.4, 1.1),
+        plot.margin = margin(t = 5, unit = "lines")) +
+  guides(fill = guide_legend(reverse = T, nrow = 1, title.position = "left"))
+tile_plot
+```
+
+Alternative variant of tile plot
+```{r tile-alternative, fig.width=6, fig.height=7}
+tile_labels <- pdata %>% 
+  add_country_names() %>% 
+  mutate(label = scales::percent(prop_unis_with_indicator, 1))
+
+tile_plot +
+  geom_text(data = tile_labels, aes(label = label),
+            colour = "grey10",
+            family = "Hind") +
+  theme(legend.position = "none", 
+        plot.margin = margin(1, 1, 1, 1, unit = "lines")) 
+```
+
+
+
+# Further tile plot according to ranking position
+```{r}
+create_groups <- function(x, type = "citation") {
+  x %>% 
+    cut_number(n = 3, labels = c("low", "medium", "high"))
+}
+
+rankings <- metadata %>% 
+  select(country, university, citations, research) %>% 
+  # control for country when investigating rankings
+  group_by(country) %>% 
+  mutate(across(c("citations", "research"), as.numeric),
+         citation_group = create_groups(citations),
+         research_group = create_groups(research, type = "research")) %>% 
+  select(-citations, -research)
+```
+
+
+
+```{r, message=FALSE}
+df_ranking <- df_university %>% 
+  left_join(rankings) %>% 
+  group_by(citation_group, code_legible) %>% 
+  summarise(n_unis_with_indicator = sum(uni_has_indicator),
+            prop_unis_with_indicator = n_unis_with_indicator/n()) %>%
+  ungroup()
+
+# remove criteria with different dimension
+pdata_ranking <- df_ranking %>% 
+  filter(
+    # impact is an overall category based on three others. makes no sense to
+    # combine them
+    !str_detect(code_legible, "Impact")
+  ) 
+```
+
+```{r}
+ranking_plot <- pdata_ranking %>% 
+  ggplot(aes(fct_rev(citation_group), 
+             fct_reorder(code_legible, prop_unis_with_indicator, mean),
+             fill = prop_unis_with_indicator)) +
+  geom_tile() +
+  scale_fill_continuous_sequential(palette = "Blues2", c1 = 60, l1 = 40,
+                                   l2 = 100, p1 = 1, h1 = 240) +
+  scale_x_discrete(guide = guide_axis(angle = 45)) +
+  labs(x = NULL, y = NULL, fill = "% of institutions\nwith given indicator") +
+  theme(legend.position = c(.4, 1.1),
+        plot.margin = margin(t = 5, unit = "lines")) +
+  guides(fill = guide_legend(reverse = T, nrow = 1, title.position = "left"))
+
+```
+
+
+```{r ranking-plot, fig.width=4.5, fig.height=7}
+ranking_labels <- pdata_ranking %>% 
+  mutate(label = scales::percent(prop_unis_with_indicator, 1))
+
+ranking_plot +
+  geom_text(data = ranking_labels, aes(label = label),
+            colour = "grey10",
+            family = "Hind") +
+  theme(legend.position = "none") +
+  labs(x = "Citation ranking")
+```
+
+# Indicators overall
+```{r indicator-overview, fig.width=7, fig.height=6}
+n_universities <- df_university %>% 
+  distinct(country, university) %>% 
+  nrow()
+
+sample_overview <- df_country %>% 
+  group_by(code_legible) %>% 
+  summarise(indicator_prevalence = sum(n_unis_with_indicator)) %>% 
+  mutate(prop = indicator_prevalence/n_universities,
+         label = glue::glue("{indicator_prevalence} ({scales::percent(prop, accuracy = 1)})"))
+
+sample_overview %>% 
+  ggplot(aes(fct_reorder(code_legible, prop, sum),
+             prop)) +
+  geom_lollipop() +
+  coord_flip(clip = "off") +
+  geom_text(aes(label = label), nudge_y = .015, hjust = "left") +
+  scale_y_continuous(labels = function(x) scales::percent(x, accuracy = 1),
+                     expand = expansion(mult = .08)) +
+  labs(x = NULL, y = "# of institutions mentioning indicator (% of total sample)") +
+  theme_ipsum(base_family = "Hind", grid = "X")
+```
+
+
+Number of criteria per country
+```{r country-table}
+df_university %>% 
+  group_by(country) %>% 
+  summarise(n_unis = length(unique(university)),
+            n_criteria = length(unique(code_legible)),
+            criteria_found = sum(uni_has_indicator)) %>% 
+  mutate(proportion_of_all_criteria = criteria_found / (n_unis * n_criteria),
+         proportion_of_all_criteria = scales::percent(
+           proportion_of_all_criteria, accuracy = 1)) %>% 
+  add_country_names() %>% 
+  select(-country) %>% 
+  select(country = country_name, everything()) %>% 
+  knitr::kable()
+
+```
+
+
+```{r, fig.width=8, fig.height=5.5}
+pdata %>% 
+  ggplot(aes(
+    prop_unis_with_indicator,
+    fct_reorder(
+      fct_reorder(
+        code_legible, prop_unis_with_indicator, max), 
+        prop_unis_with_indicator, median
+      )
+    )
+  ) + 
+  geom_boxplot(fill = "#1F968BFF") +
+  scale_x_continuous(labels = scales::percent) +
+  labs(y = NULL, x = "prevalence per country")
+```
+
+Problem with the above figure: only 6 data points per Y-Val (code), therefore
+boxplot might obscure this. Maybe should show this. Maybe also just to vertical
+bars for each country.
+
+
+```{r dots-means-countries, fig.height=9, fig.width=9}
+# do dot per country, potentially using ggplotly to make it interactive
+# where to host the ggplotly?
+p <- pdata %>% 
+  add_country_names() %>% 
+  mutate(proportion_with_indicator = prop_unis_with_indicator,
+         indicator = fct_reorder(code_legible, prop_unis_with_indicator, mean)) %>% 
+  ggplot(aes(proportion_with_indicator, indicator,
+             label = n_unis_with_indicator)) + 
+  scale_x_continuous(labels = scales::percent) +
+  scale_color_brewer(palette = "Set2") +
+  labs(y = NULL, x = "prevalence per country", colour = NULL,
+       title = "Average prevalence of aspects per country")
+
+p + geom_jitter(aes(colour = country_name), 
+                width = 0, height = .1, size = 4) +
+  stat_summary(fun = "mean", geom = "point", size = 10, pch = "|") +
+  theme(legend.position = "top")
+
+```
+
+
+```{r dpi=150}
+p_interactive <- p + 
+    geom_jitter(aes(colour = country_name),
+              width = 0, height = .2, size = 2) 
+plotly::ggplotly(p_interactive)
+```
+
+
+# Detailed table
+*The following figure depicts the same information as above but in a different 
+way that is easier to read directly (if one wants to know the exact number
+of universities that mention a specific indicator).*
+
+```{r, out.extra='angle=90', fig.asp=.5, fig.width=17}
+pdata %>%
+  ggplot(aes(country, prop_unis_with_indicator)) +
+  geom_col(width = .7, show.legend = FALSE) +
+  facet_wrap(vars(fct_reorder(code_legible, prop_unis_with_indicator, sum, .desc = TRUE)),
+             nrow = 3) +
+  scale_y_continuous(labels = scales::percent) +
+  labs(y = "% of institutions with indicator", x = NULL) +
+  hrbrthemes::theme_ipsum_rc(base_family = "Hind", grid = "Y")
+```
+
+
+The same information displayed along countries.
+```{r, fig.asp=1.8, fig.width=8}
+pdata %>% 
+  mutate(prop_unis_without_indicator = 1 - prop_unis_with_indicator) %>% 
+  pivot_longer(starts_with("prop")) %>% 
+  ggplot(aes(value, code_legible, fill = fct_rev(name))) +
+  geom_col() +
+  facet_wrap(vars(country)) +
+  scale_fill_brewer(palette = "Set1") +
+  scale_x_continuous(labels = scales::percent) +
+  labs(y = NULL, fill = NULL, x = NULL) +
+  theme(legend.position = "top")
+```
+
+
+# Correlation of indicators
+```{r}
+cor_matrix <- df_university %>% 
+  pivot_wider(names_from = code_legible, values_from = uni_has_indicator) %>% 
+  select(-c(country, university, level, status)) %>% 
+  # remove data and OA since they are missing everywhere
+  select(-starts_with("Data"), -starts_with("Open a")) %>% 
+  cor()
+```
+
+```{r}
+plot_correlation <- function(cor_matrix, cluster = TRUE) {
+  # code from http://www.sthda.com/english/wiki/visualize-correlation-matrix-using-correlogram
+  col <- colorRampPalette(c("#BB4444", "#EE9988", "#FFFFFF", "#77AADD", "#4477AA"))
+  
+  order <- ifelse(cluster, "hclust", "original")
+  
+  corrplot(cor_matrix, method = "color", col = col(200),  
+           type = "upper", order = order, 
+           addCoef.col = "black", # Add coefficient of correlation
+           tl.col = "black", tl.srt = 45, #Text label color and rotation
+           # hide correlation coefficient on the principal diagonal
+           diag = FALSE 
+           )
+}
+```
+
+
+```{r, fig.width=13, fig.height=10}
+plot_correlation(cor_matrix, cluster = TRUE)
+```
+
+
+Do the same only for the US only.
+```{r, fig.width=11, fig.height=8}
+cor_usa <- df_university %>% 
+  filter(country == "USA") %>% 
+  pivot_wider(names_from = code_legible, values_from = uni_has_indicator) %>% 
+  select(-c(country, university, level, status)) %>% 
+  # remove data and OA since they are missing everywhere
+  select(-starts_with("Data"), -starts_with("Open a"), 
+         # Also remove gender vars, since they are missing for USA
+         -where(~sum(.x) == 0)) %>% 
+  cor()
+
+plot_correlation(cor_usa, cluster = TRUE)
+```
+
+
+## Citation ranking vs citation policy
+```{r}
+metadata <- readd(metadata)
+
+metadata_small <- metadata %>% 
+  select(country, university, uni_name, status, level,
+         research_ranking = research, citation_ranking = citations) %>% 
+  mutate(across(research_ranking:citation_ranking, as.numeric))
+
+df_university %>% 
+  filter(code_legible == "Citations") %>% 
+  left_join(metadata_small) %>%  
+  ungroup() %>% 
+  ggplot(aes(uni_has_indicator, as.numeric(citation_ranking))) +
+  geom_boxplot()
+  
+
+
+```
+
+There is not much difference here.
+
+# Correlate rankings with indicators
+
+```{r, fig.width=13, fig.height=10}
+cor_data <- df_university %>% 
+  left_join(metadata_small) %>% 
+  pivot_wider(names_from = code_legible, values_from = uni_has_indicator) %>% 
+  select(-c(country, university, level, status, uni_name)) %>% 
+  # remove data since it is missing everywhere
+  select(-starts_with("Data"), -starts_with("Open a")) 
+
+cor_matrix <- cor_data %>% 
+  cor(use = "pairwise.complete.obs")
+```
+
+
+```{r, fig.width=11, fig.height=4.5}
+# only plot the the wur rankings vs 
+plot_correlation(cor_matrix[1:2, ], cluster = FALSE)
+```
+
+Conclusions:
+
+- there are no big correlations here beyond the above correlation plots
+- higher research ranking is associated with lower focus on industry, journal
+metrics, service to the profession, peer review and software (the latter being
+an artefact of mainly brasil mentioning software)
+
+
+Display significance levels (.05), although they are probably not meaningful
+given the non-random sample. P values were adjusted using the Benjamini,
+Hochberg, and Yekutieli methods to control the false discovery rate.
+```{r}
+p_vals <- cor.mtest(cor_data)$p[1:2, ]
+adj_p_vals <- p.adjust(p_vals, method = "BY") %>% 
+  matrix(nrow = 2) 
+
+colnames(adj_p_vals) <- colnames(p_vals)
+rownames(adj_p_vals) <- rownames(p_vals)
+
+
+corrplot(cor_matrix[1:2, ], p.mat = adj_p_vals, 
+         sig.level = .05, # Add coefficient of correlation
+         tl.col = "black", tl.srt = 45)
+```
+
+Now, do the correlation only for US
+
+```{r}
+cor_data_usa <- df_university %>% 
+  filter(country == "USA") %>% 
+  left_join(metadata_small) %>% 
+  pivot_wider(names_from = code_legible, values_from = uni_has_indicator) %>% 
+  select(-c(country, university, level, status, uni_name)) %>% 
+  # remove data and OA and Gender since they are missing everywhere
+  select(-starts_with("Data"), -starts_with("OpenA"), -starts_with("Gender")) 
+
+cor_matrix_usa <- cor_data_usa %>% 
+  cor(use = "pairwise.complete.obs")
+```
+
+
+```{r, fig.width=10, fig.height=4}
+# only plot the the wur rankings vs 
+plot_correlation(cor_matrix_usa[1:2, ], cluster = FALSE)
+```
+Conclusions:
+
+- Higher research ranking is associated with
+    + not mentioning peer review, impact on industry, service to profession or
+    creation of research software
+- However: especially peer review has no correlation with the citation ranking
+
+
+```{r}
+p <- df_university %>% 
+  filter(country == "USA") %>% 
+  left_join(metadata_small) %>%
+  pivot_wider(names_from = code_legible, values_from = uni_has_indicator) %>% 
+  ggplot(aes(research_ranking, citation_ranking,
+             colour = `Review & editorial activities`,
+             label = uni_name)) +
+  geom_jitter()
+
+plotly::ggplotly(p)
+```
+
+# Principal component analysis
+```{r}
+df_for_principal <- cor_data %>% 
+  select(!ends_with("ranking"))
+```
+
+
+```{r}
+df_for_principal %>% 
+  parallel_test()
+```
+
+
+```{r, fig.width=8, fig.height=8}
+df_for_principal %>% 
+  mutate(across(.fns = as.numeric)) %>% 
+  factormap()
+```
+
+```{r}
+principal_comp(df_for_principal, 4, "varimax")
+```
+
+
+
+Maybe doing a correspondence analysis could help? This could help visualising
+the initial figure (tile plot). However, one must be careful since the 
+sample sizes are not equal among countries. Does that matter?
+Maybe to do a correspondence analysis of all vars vs all vars, to see how they
+interrelate (as an alternative to the PCA, which might be debatable given
+the binary data).
+
+
+# Countries on alternative indicators
+Variables to collate: Data, OA, Citizen Science, Software, Gender equality,
+three forms of engagement.
+
+```{r, message=FALSE}
+alternative_indicators <- df_university %>% 
+  filter(code_legible %in% c(
+    "Data", "Open access", "Citizen science", "Software", "Gender equality", 
+    "Engagement with industry", "Engagement with policy makers",
+    "Engagement with the public"))
+
+alternative_p_country <- alternative_indicators %>% 
+  group_by(country, university) %>% 
+  summarise(n_per_uni = sum(uni_has_indicator)) %>% 
+  add_country_names()
+
+alternative_p_country_summarised <- alternative_p_country %>% 
+  group_by(country_name) %>% 
+  summarise(mean = mean(n_per_uni),
+            sd = sd(n_per_uni),
+            se = sqrt(var(n_per_uni) / length(n_per_uni)),
+            upper = mean + se,
+            lower = mean - se,
+            conf_int = list(Hmisc::smean.cl.boot(n_per_uni))) %>% 
+  unnest_wider(conf_int)
+alternative_p_country_summarised %>% 
+  knitr::kable()
+```
+
+```{r alternative-countries-means, fig.width=7, fig.height=4}
+ggplot(alternative_p_country_summarised, aes(mean, fct_reorder(country_name, mean, max))) +
+  geom_errorbar(aes(xmax = Upper, xmin = Lower), width = .3) +
+  geom_point(size = 2) +
+  coord_cartesian(xlim = c(0, 8)) +
+  labs(x = "mean number of alternative criteria", y = NULL)
+```
+
+
+```{r}
+alternative_p_country %>% 
+  ggplot(aes(n_per_uni, country_name)) +
+  geom_jitter(height = .05, width = .1)
+```
+```{r}
+uni_n <- alternative_p_country %>% 
+  count(country_name, name = "n_uni")
+# make one dot, but bigger if many
+alternative_p_country %>% 
+  group_by(country_name) %>% 
+  count(n_per_uni) %>% 
+  left_join(uni_n) %>% 
+  ggplot(aes(n_per_uni, country_name, size = n/n_uni)) +
+  geom_point()
+```
+
+
+
+```{r}
+alternative_p_country %>% 
+  ggplot(aes(n_per_uni, country_name)) +
+  geom_boxplot(width = .7) +
+  geom_jitter(height = .01, width = .1)
+```

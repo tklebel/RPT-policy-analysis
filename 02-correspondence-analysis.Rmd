@@ -1,0 +1,231 @@
+---
+title: "Correspondence Analysis"
+author: "Thomas Klebel"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  html_document:
+    keep_md: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, dpi = 300)
+
+df <- readd(merged)
+
+extrafont::loadfonts(device = "win")
+
+theme_set(hrbrthemes::theme_ipsum(base_family = "Hind"))
+
+scale_spectral <- c("Indicator present" = "#3588BD", 
+                    "Indicator not present" = "#C26574",
+                    "Supplementary Variables" = "#389342")
+# new scale:
+# blue #3588BD
+# red #C26574
+# green #389342
+```
+
+
+```{r recode-for-mca}
+# aggregate by university (because we have multiple policies for some unis)
+df_university <- df %>%
+  filter(Group != "Metadata") %>% 
+  group_by(country, university, code_legible, level, status) %>%
+  summarise(uni_has_indicator = any(quant_indicator > 0, na.rm = TRUE)) %>% 
+  ungroup()
+
+# rename columns for easier overview
+df_university <- df_university %>% 
+  mutate(code_abbr = case_when(
+    code_legible == "Engagement with industry" ~ "Industry E.",
+    code_legible == "Engagement with policy makers" ~ "Policy makers E.",
+    code_legible == "Engagement with the public" ~ "Public E.",
+    code_legible == "Service to profession" ~ "Service",
+    code_legible == "Review & editorial activities" ~ "Review & editorial",
+    TRUE ~ code_legible
+  ))
+
+recoded_data <- df_university %>% 
+  select(country, university, code_abbr, uni_has_indicator) %>% 
+  mutate(ca_code = case_when(
+    uni_has_indicator ~ paste(code_abbr, "++"),
+    TRUE ~ paste(code_abbr, "--")
+  ))
+
+mca_data <- recoded_data %>% 
+    filter(
+    # impact is an overall category based on three others. makes no sense to
+    # include all four
+    !str_detect(code_abbr, "Impact"), 
+    # remove all gender variables, because they are very special: only the case
+    # in Austria and Germany, and dominate the resulting solution, clouding 
+    # other differences
+    !str_detect(code_abbr, "Gender")
+  ) 
+
+
+mca_wide <- mca_data %>% 
+  select(-uni_has_indicator) %>% 
+  pivot_wider(names_from = "code_abbr", values_from = "ca_code")
+```
+
+
+```{r compute-mca}
+mca_model <- mca_wide %>%
+  select(-country, -university) %>% 
+  select(-Data, -`Open access`) %>% # removing data and OA since there are no entries
+  ca::mjca()
+```
+
+
+```{r}
+prettify <- list(
+  theme(legend.position = "top",
+        axis.title.x = element_text(size = rel(1.5)),
+        axis.title.y = element_text(size = rel(1.5)),
+        axis.text = element_text(size = rel(1.2)),
+        legend.text = element_text(size = rel(1.1))),
+  scale_color_manual(values = scale_spectral) 
+)
+```
+
+
+```{r mca-bare, fig.width=12, fig.height=7}
+scale_short <- c("Indicator present" = "#3588BD", 
+                    "Indicator not present" = "#C26574")
+
+mca_model %>%
+  plot_ca(font_size = 5, show.legend = TRUE) +
+  coord_fixed() +
+  prettify +
+  scale_color_manual(values = scale_short) 
+```
+
+
+# Model with countries
+
+```{r re-compute-mca-2}
+m2 <- mca_wide %>%
+  add_country_names() %>% 
+  select(-university, -country) %>% 
+  select(-Data, -`Open access`) %>% # removing data and OA since there are no entries
+  ca::mjca(supcol = 13)
+```
+
+
+```{r}
+m2 %>%
+  plot_ca(font_size = 5, show.legend = T) +
+  coord_fixed() -> m2_plot
+```
+
+```{r mca-with-countries, fig.width=14, fig.height=14}
+country_plot <- m2_plot + prettify
+
+country_plot
+```
+
+This shows the patterns better than the previous attempts with correlations etc.
+
+GB: more concerned with engagement beyond academia, as well as publication quality
+PT is somewhat similar to UK, but with more focus on public engagement and less
+on publication quality
+BR is dominated by software and citizen science (both low frequency cells)
+AT: low on engagement
+DE, similar to austria, but more on patents and peer review
+India is low on everything, in comparative terms, lower on impact and service
+USA is closest to the average (also being the biggest), below average in impact,
+but generally below average in all aspects
+
+Important: GB, PT and BR look very far apart, but this is due to second axis. On 
+first axis, they are very similar (in terms of service and or impact). Different
+in terms of patents and publication quality.
+
+Important to also consider the table
+```{r}
+summary(m2)
+```
+
+```{r}
+print_mca <- function(mca_model, title = NULL) {
+  summary(mca_model) %>%
+  .[["columns"]] %>%
+  as_tibble(.name_repair = "unique") %>%
+  mutate(name = str_remove(name, ".*?\\:") %>% str_replace("\\n", " ")) %>%
+  select(-` qlt`, inertia = ` inr`, Variable = name,
+         `correlation with dim 1` = "cor...6",
+         `contribution to dim 1` = "ctr...7",
+         `correlation with dim 2` = "cor...9",
+         `contribution to dim 2` = "ctr...10",) %>%
+  knitr::kable(caption = title)
+}
+```
+
+```{r}
+print_mca(m2, "Numerical output from MCA on countries")
+```
+
+
+# project also rankings
+```{r}
+metadata <- readd(metadata)
+
+create_groups <- function(x, type = "citation") {
+  x %>% 
+    cut_number(n = 3, labels = c("low", "medium", "high")) %>% 
+    paste(type, "ranking -", .)
+}
+
+rankings <- metadata %>% 
+  select(country, university, citations, research) %>% 
+  # control for country when investigating rankings
+  group_by(country) %>% 
+  mutate(across(c("citations", "research"), as.numeric),
+         citation_group = create_groups(citations),
+         research_group = create_groups(research, type = "research")) %>% 
+  select(-citations, -research)
+
+
+count(rankings, citation_group)
+count(rankings, research_group)
+```
+
+
+
+```{r compute-mca-ranking}
+m3 <- mca_wide %>% 
+  left_join(rankings) %>%
+  select(-university, -country, -research_group) %>% 
+  select(-Data, -`Open access`) %>% # removing data since there are no entries,
+  # and OA since there is only one
+  ca::mjca(supcol = c(13)) # only use citation ranking to avoid overplotting and
+  # since this indicator is more objective
+```
+
+
+```{r mca-with-ranking, fig.width=12, fig.height=7}
+m3 %>%
+  plot_ca(font_size = 4, show.legend = T) +
+  coord_fixed() +
+  prettify -> ranking_plot
+ranking_plot
+```
+
+```{r}
+summary(m3)
+```
+```{r}
+print_mca(m3, "Numerical output from MCA on rankings")
+```
+
+
+# combine them
+```{r combined, fig.height=20, fig.width=12}
+country_plot / ranking_plot +
+  plot_layout(heights = c(2, 1),
+              guides = "collect") +
+  plot_annotation(tag_levels = "A") &
+  theme(legend.position = "top",
+        plot.tag = element_text(size = 20))
+```
+

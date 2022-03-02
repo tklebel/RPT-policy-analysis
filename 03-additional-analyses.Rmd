@@ -1,0 +1,75 @@
+---
+title: "03-additional-investigations"
+author: "Thomas Klebel"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  html_document:
+    keep_md: true
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, dpi = 300)
+library(janitor)
+
+df <- readd(merged)
+metadata <- readd(metadata)
+
+extrafont::loadfonts(device = "win")
+
+theme_set(hrbrthemes::theme_ipsum(base_family = "Hind"))
+```
+
+# Relationship pub quality, citations, journal metrics
+What are the propensities for universities mentioning pub quality also mentioning
+citations and jourmal metrics?
+
+
+```{r}
+df_pub <- df %>% 
+  filter(code_legible %in% c("Journal metrics", "Citations", 
+                             "Publication quality")) %>% 
+  group_by(country, university, code_legible) %>%
+  summarise(uni_has_indicator = any(quant_indicator > 0, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  pivot_wider(names_from = "code_legible", values_from = "uni_has_indicator")
+df_pub
+
+
+
+```
+
+```{r}
+df_pub %>% 
+  tabyl(`Publication quality`, Citations) %>% 
+  adorn_percentages() %>% 
+  adorn_totals("col") %>% 
+  adorn_pct_formatting()
+```
+
+```{r}
+df_pub %>% 
+  tabyl(`Publication quality`, `Journal metrics`) %>% 
+  adorn_percentages() %>% 
+  adorn_totals("col") %>% 
+  adorn_pct_formatting()
+```
+```{r}
+df_pub %>% 
+  tabyl(Citations, `Journal metrics`) %>% 
+  adorn_percentages() %>% 
+  adorn_totals("col") %>% 
+  adorn_pct_formatting()
+```
+
+
+```{r}
+metadata %>% 
+  mutate(across(c("research", "citations"), .fns = as.numeric)) %>% 
+  select(country, citations, research) %>% 
+  pivot_longer(-country) %>% 
+  ggplot(aes(value, country)) +
+  geom_boxplot() +
+  geom_jitter(height = .05, alpha = .6, colour = "#3288BD") +
+  facet_wrap(vars(name)) +
+  labs(y = NULL, x = "Ranking value")
+
+```
